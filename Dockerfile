@@ -35,4 +35,4 @@ RUN mkdir -p build
 
 RUN go build -o build/server_start main.go
 
-ENTRYPOINT /go/src/github.com/polyfact/llama-microservice/build/server_start
+CMD ["sh", "-c", "cd /tmp/llama.cpp && make clean && make -j && /go/src/github.com/polyfact/llama-microservice/build/server_start"]
