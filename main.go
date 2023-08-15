@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -11,13 +12,25 @@ import (
 	"os/exec"
 )
 
-var (
-	LLAMA_BIN   = os.Getenv("LLAMA_BIN")
-	LLAMA_MODEL = os.Getenv("LLAMA_MODEL")
-)
+type Model struct {
+	Binary string
+	Model  string
+}
+
+var modelsMap = map[string]Model{
+	"llama": {
+		Binary: os.Getenv("LLAMA_BIN"),
+		Model:  os.Getenv("LLAMA_MODEL"),
+	},
+	"llama2": {
+		Binary: os.Getenv("LLAMA2_BIN"),
+		Model:  os.Getenv("LLAMA2_MODEL"),
+	},
+}
 
 type RequestBody struct {
-	Prompt string `json:"prompt"`
+	Prompt string  `json:"prompt"`
+	Model  *string `json:"model"`
 }
 
 func generate(w http.ResponseWriter, r *http.Request) {
@@ -28,8 +41,19 @@ func generate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
 	}
 
+	model := "llama"
+
+	if input.Model != nil {
+		model = *input.Model
+	}
+
+	options, found := modelsMap[model]
+	if !found {
+		http.Error(w, "404 Unknown Model", http.StatusNotFound)
+	}
+
 	ctx := context.Background()
-	cmd := exec.CommandContext(ctx, LLAMA_BIN, "-m", LLAMA_MODEL, "-p", input.Prompt)
+	cmd := exec.CommandContext(ctx, options.Binary, "-m", options.Model, "-p", input.Prompt)
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
@@ -63,5 +87,6 @@ func generate(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", generate)
 
+	fmt.Println("Started on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
