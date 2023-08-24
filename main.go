@@ -29,8 +29,9 @@ var modelsMap = map[string]Model{
 }
 
 type RequestBody struct {
-	Prompt string  `json:"prompt"`
-	Model  *string `json:"model"`
+	Prompt      string   `json:"prompt"`
+	Model       *string  `json:"model"`
+	Temperature *float64 `json:"temperature"`
 }
 
 func generate(w http.ResponseWriter, r *http.Request) {
@@ -52,8 +53,22 @@ func generate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "404 Unknown Model", http.StatusNotFound)
 	}
 
+	temp := 0.8
+	if input.Temperature != nil {
+		temp = *input.Temperature
+	}
+
 	ctx := context.Background()
-	cmd := exec.CommandContext(ctx, options.Binary, "-m", options.Model, "-p", input.Prompt)
+	cmd := exec.CommandContext(
+		ctx,
+		options.Binary,
+		"-m",
+		options.Model,
+		"--temp",
+		fmt.Sprintf("%.6f", temp),
+		"-p",
+		input.Prompt,
+	)
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
