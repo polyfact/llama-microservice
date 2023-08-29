@@ -31,11 +31,13 @@ RUN pip install -r requirements.txt
 
 # We convert the llama2 model from ggmlv3 to gguf
 RUN python convert-llama-ggmlv3-to-gguf.py --input /tmp/llama-2-7b-chat.ggmlv3.q2_K.bin --output /tmp/llama-2-7b-chat.gguf.q2_K.bin
+RUN rm /tmp/llama-2-7b-chat.ggmlv3.q2_K.bin
 
 ENV LLAMA2_MODEL /tmp/llama-2-7b-chat.gguf.q2_K.bin
 
 # We convert the llama2 model from ggmlv3 to gguf
 RUN python convert-llama-ggmlv3-to-gguf.py --input /tmp/llama-7b-ggml-v3-q4_0.bin --output /tmp/llama-7b.gguf.q4_0.bin
+RUN rm /tmp/llama-7b-ggml-v3-q4_0.bin
 
 ENV LLAMA_MODEL /tmp/llama-7b.gguf.q4_0.bin
 
