@@ -1,10 +1,5 @@
 FROM alpine:3
 
-RUN apt update
-
-# The first thing we do is download the llama models (for cache reason, given it's ~4GB we don't want to redownload it every time we build)
-RUN apt-get install -y wget
-
 WORKDIR /tmp/
 
 ENV CODELLAMA_MODEL /var/models/codellama-7b-instruct.Q2_K.gguf
@@ -14,7 +9,7 @@ ENV LLAMA2_MODEL /var/models/llama-2-7b-chat.gguf.q2_K.bin
 ENV LLAMA_MODEL /var/models/llama-7b.gguf.q4_0.bin
 
 # We then install git and the package required to build llama and the go app
-RUN apt-get install -y golang make git g++
+RUN apk add go make git g++
 
 # We make 2 llama.cpp directories (one will be used with an older version for alpaca compatibility and the other with llama 2)
 RUN git clone https://github.com/ggerganov/llama.cpp.git
