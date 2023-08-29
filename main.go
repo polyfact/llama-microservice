@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type Model struct {
@@ -17,21 +18,23 @@ type Model struct {
 	Model  string
 }
 
-var modelsMap = map[string]Model{
-	"llama": {
-		Binary: os.Getenv("LLAMA_BIN"),
-		Model:  os.Getenv("LLAMA_MODEL"),
-	},
-	"llama2": {
-		Binary: os.Getenv("LLAMA2_BIN"),
-		Model:  os.Getenv("LLAMA2_MODEL"),
-	},
-}
+var (
+	LLAMA_BIN = os.Getenv("LLAMA_BIN")
+	modelsMap = map[string]Model{
+		"llama": {
+			Model: os.Getenv("LLAMA_MODEL"),
+		},
+		"llama2": {
+			Model: os.Getenv("LLAMA2_MODEL"),
+		},
+	}
+)
 
 type RequestBody struct {
 	Prompt      string   `json:"prompt"`
 	Model       *string  `json:"model"`
 	Temperature *float64 `json:"temperature"`
+	Stop        []string `json:"stop"`
 }
 
 func generate(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +64,7 @@ func generate(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	cmd := exec.CommandContext(
 		ctx,
-		options.Binary,
+		LLAMA_BIN,
 		"-m",
 		options.Model,
 		"--temp",
@@ -78,8 +81,13 @@ func generate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	defer cmd.Process.Kill()
+
 	to_skip := len(input.Prompt) + 1
 	var p []byte = make([]byte, 128)
+	total := ""
+
+token_loop:
 	for {
 		nb, err := reader.Read(p)
 		if errors.Is(err, io.EOF) || err != nil {
@@ -90,9 +98,18 @@ func generate(w http.ResponseWriter, r *http.Request) {
 			if to_skip > 0 {
 				start = to_skip
 			}
+
 			w.Write(p[start:nb])
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
+			}
+
+			total += string(p[start:nb])
+
+			for _, stop_word := range input.Stop {
+				if strings.HasSuffix(strings.Trim(total, " "), stop_word) {
+					break token_loop
+				}
 			}
 		}
 		to_skip -= nb
