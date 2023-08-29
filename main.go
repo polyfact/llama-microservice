@@ -27,6 +27,9 @@ var (
 		"llama2": {
 			Model: os.Getenv("LLAMA2_MODEL"),
 		},
+		"codellama": {
+			Model: os.Getenv("CODELLAMA_MODEL"),
+		},
 	}
 )
 

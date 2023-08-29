@@ -1,4 +1,4 @@
-FROM python:slim
+FROM alpine:3
 
 RUN apt update
 
@@ -7,13 +7,11 @@ RUN apt-get install -y wget
 
 WORKDIR /tmp/
 
-RUN wget https://huggingface.co/gotzmann/LLaMA-GGML-v3/resolve/main/llama-7b-ggml-v3-q4_0.bin
+ENV CODELLAMA_MODEL /var/models/codellama-7b-instruct.Q2_K.gguf
 
-ENV LLAMA_MODEL /tmp/llama-7b-ggml-v3-q4_0.bin
+ENV LLAMA2_MODEL /var/models/llama-2-7b-chat.gguf.q2_K.bin
 
-RUN wget https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGML/resolve/main/llama-2-7b-chat.ggmlv3.q2_K.bin
-
-ENV LLAMA2_MODEL /tmp/llama-2-7b-chat.ggmlv3.q2_K.bin
+ENV LLAMA_MODEL /var/models/llama-7b.gguf.q4_0.bin
 
 # We then install git and the package required to build llama and the go app
 RUN apt-get install -y golang make git g++
@@ -25,21 +23,6 @@ WORKDIR /tmp/llama.cpp
 
 # We use a version which support the llama2 model we downloaded
 RUN git checkout bcce96ba4dd95482824700c4ce2455fe8c49055a
-
-# We install the python3 packages required to convert the llama2 model to gguf
-RUN pip install -r requirements.txt
-
-# We convert the llama2 model from ggmlv3 to gguf
-RUN python convert-llama-ggmlv3-to-gguf.py --input /tmp/llama-2-7b-chat.ggmlv3.q2_K.bin --output /tmp/llama-2-7b-chat.gguf.q2_K.bin
-RUN rm /tmp/llama-2-7b-chat.ggmlv3.q2_K.bin
-
-ENV LLAMA2_MODEL /tmp/llama-2-7b-chat.gguf.q2_K.bin
-
-# We convert the llama2 model from ggmlv3 to gguf
-RUN python convert-llama-ggmlv3-to-gguf.py --input /tmp/llama-7b-ggml-v3-q4_0.bin --output /tmp/llama-7b.gguf.q4_0.bin
-RUN rm /tmp/llama-7b-ggml-v3-q4_0.bin
-
-ENV LLAMA_MODEL /tmp/llama-7b.gguf.q4_0.bin
 
 # We build llama
 RUN make -j
